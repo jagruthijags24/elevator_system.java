@@ -1,0 +1,116 @@
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Scanner;
+
+public class Elevator_System {
+    int numFloors;
+    int currFloor;
+    Direction currDir;
+    HashMap<String, HashMap<Integer, Integer>> map;
+    HashSet<Integer> destinations;
+
+    int[] prev_floor;
+
+    public Elevator_System(int numFloors, int currFloor) {
+        this.currFloor = currFloor;
+        this.numFloors = numFloors;
+        this.currDir = Direction.UP;
+        this.map = new HashMap<>();
+        map.put("UP", new HashMap<>());
+        map.put("DOWN", new HashMap<>());
+        this.destinations = new HashSet<>();
+        this.prev_floor = new int[]{-1, -1};
+    }
+
+    public void addRequest(Request req) {
+        HashMap<Integer, Integer> tmpMap = req.direction == Direction.UP ? map.get("UP") : map.get("DOWN");
+        tmpMap.put(req.srcFloor, tmpMap.getOrDefault(req.srcFloor, 0) + 1);
+    }
+
+    public int look_ahead(Direction dir, int currFloor) {
+
+        if (dir == Direction.UP) {
+            for (int floor = currFloor + 1; floor < numFloors; floor++) {
+                if (map.get("UP").getOrDefault(floor, 0) != 0 || destinations.contains(floor)) {
+                    return floor;
+                }
+            }
+            this.currDir = Direction.DOWN;
+        } else if (dir == Direction.DOWN) {
+            for (int floor = currFloor - 1; floor >= 0; floor--) {
+                if (map.get("DOWN").getOrDefault(floor, 0) != 0 || destinations.contains(floor)) {
+                    return floor;
+                }
+            }
+            this.currDir = Direction.UP;
+        } else {
+            for (int floor = 0; floor < numFloors; floor++) {
+                if (map.get("UP").getOrDefault(floor, 0) != 0) {
+                    this.currDir = Direction.UP;
+                    return floor;
+                }
+            }
+            for (int floor = 0; floor < numFloors; floor++) {
+                if (map.get("DOWN").getOrDefault(floor, 0) != 0) {
+                    this.currDir = Direction.DOWN;
+                    return floor;
+                }
+            }
+
+        }
+        return currFloor;
+
+    }
+
+    public void process_requests() {
+        while (true) {
+            int toGoFloor = look_ahead(this.currDir, this.currFloor);
+            if (toGoFloor != this.currFloor) {
+                System.out.println("Reached the floor " + toGoFloor);
+            }
+            destinations.remove(toGoFloor);
+            if (this.currDir == Direction.UP && this.map.get("UP").getOrDefault(toGoFloor, 0) != 0) {
+                this.map.get("UP").put(toGoFloor, 0);
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Enter destination floors separated by space:");
+                String[] inp = scanner.nextLine().split(" ");
+                for (int i = 0; i < inp.length; i++) destinations.add(Integer.parseInt(inp[i]));
+
+            } else if (this.currDir == Direction.DOWN && this.map.get("DOWN").getOrDefault(toGoFloor, 0) != 0) {
+                this.map.get("DOWN").put(toGoFloor, 0);
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Enter destination floors separated by space:");
+                String[] inp = scanner.nextLine().split(" ");
+                for (int i = 0; i < inp.length; i++) destinations.add(Integer.parseInt(inp[i]));
+            }
+            prev_floor[0] = prev_floor[1];
+            prev_floor[1] = this.currFloor;
+            this.currFloor = toGoFloor;
+
+            if (prev_floor[0] == this.currFloor) this.currDir = Direction.STOP;
+        }
+    }
+
+    public static void main(String[] args) {
+        Elevator_System elevator = new Elevator_System(10, 0); // 10 floors, starting at floor 0
+        elevator.addRequest(new Request(3, Direction.UP)); // Request from floor 3, going UP
+        elevator.addRequest(new Request(5, Direction.DOWN)); // Request from floor 5, going DOWN
+        elevator.process_requests(); // Start processing the requests
+    }
+}
+
+enum Direction {
+    UP,
+    DOWN,
+    STOP
+}
+
+class Request {
+    int srcFloor;
+    Direction direction;
+
+    public Request(int srcFloor, Direction direction) {
+        this.srcFloor = srcFloor;
+        this.direction = direction;
+    }
+}
